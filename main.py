@@ -38,6 +38,20 @@ def load_png(path):
 
 
 """
+Classe gérant le sprite Mur
+Hérite de :
+    - pygame.sprite.Sprite
+"""
+class Mur(pygame.sprite.Sprite):
+    """
+    Constructeur de la classe Sprite
+    """
+    def __init__(self):
+        pygame.sprite.Sprite.__init__(self)
+        self.image = pygame.Surface((128,15),0,None)
+        self.rect = pygame.Rect(100,100,128,15)
+
+"""
 Classe gérant le sprite Denis
 Hérite de :
     -  pygame.sprite.Sprite
@@ -61,6 +75,7 @@ class Denis(pygame.sprite.Sprite):
         self.rect.center = [SCREEN_WIDTH/2,SCREEN_HEIGHT/2]
         self.orientation = 'w'
 
+
     """
     Methode mettant à jour la position du sprite
     Paramètres :
@@ -68,15 +83,35 @@ class Denis(pygame.sprite.Sprite):
     """
     def update(self,keys):
 
-        if keys[K_LEFT]:
-            self.moveLeft()
-        elif keys[K_RIGHT]:
-            self.moveRight()
-        elif keys[K_UP]:
-            self.moveUp()
-        elif keys[K_DOWN]:
-            self.moveDown()
+        if self.rect.colliderect(Mur().rect) == 0:
 
+            if keys[K_LEFT]:
+                self.moveLeft()
+            elif keys[K_RIGHT]:
+                self.moveRight()
+            elif keys[K_UP]:
+                self.moveUp()
+            elif keys[K_DOWN]:
+                self.moveDown()
+
+        else:
+
+
+
+            if self.orientation == 'w' :
+
+                self.rect = pygame.Rect(Mur().rect.right,self.rect.y,self.rect.w,self.rect.h)
+
+            elif self.orientation == 'e':
+                self.rect = pygame.Rect(Mur().rect.left-self.rect.w,self.rect.y,self.rect.w,self.rect.h)
+
+            elif 'n' in self.orientation:
+
+                self.rect = pygame.Rect(self.rect.x,Mur().rect.bottom,self.rect.w,self.rect.h)
+
+            elif 's' in self.orientation:
+
+                self.rect = pygame.Rect(self.rect.x,Mur().rect.top-self.rect.h,self.rect.w,self.rect.h)
 
     """
     Methode gérant le déplacement vers la gauche
@@ -192,7 +227,8 @@ class MyServer(Server):
     """
     def send_denis(self):
         for client in self.clients:
-            client.Send({'action':'denis','denis':[client.denis.rect.centerx,client.denis.rect.centery,client.denis.orientation]})
+            if not client.denis.rect.colliderect(Mur().rect):
+                client.Send({'action':'denis','denis':[client.denis.rect.centerx,client.denis.rect.centery,client.denis.orientation]})
 
     """
     Methode du jeu
