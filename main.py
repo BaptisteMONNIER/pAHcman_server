@@ -75,7 +75,7 @@ class Denis(pygame.sprite.Sprite):
         self.image_se,_=load_png("pics/denis/denis-se.png")
         self.image_sw,_=load_png("pics/denis/denis-sw.png")
 
-        self.rect.center = [SCREEN_WIDTH/2,SCREEN_HEIGHT/2]
+        self.rect.center = [SCREEN_WIDTH/2,SCREEN_HEIGHT/2+150]
         self.orientation = 'w'
 
 
@@ -183,6 +183,7 @@ class ClientChannel(Channel):
 
         #Haut de la map
         self.murs.append(Mur(0,0,SCREEN_WIDTH,15))
+        self.murs.append(Mur(SCREEN_WIDTH/2-5,15,10,100))
 
         #Côté gauche de la map
         self.murs.append(Mur(0,15,15,170))
@@ -208,8 +209,38 @@ class ClientChannel(Channel):
         self.murs.append(Mur(SCREEN_WIDTH-15,470,15,SCREEN_HEIGHT-433))
 
 
-        #Interieur de la map
-        self.murs.append(Mur(88,88,15,15))
+        #Interieur de la map, partie haute
+        self.murs.append(Mur(88,88,100,15))
+        self.murs.append(Mur(300,88,130,15))
+        self.murs.append(Mur(SCREEN_WIDTH-188,88,100,15))
+        self.murs.append(Mur(SCREEN_WIDTH-430,88,130,15))
+
+        #cage à AH
+        self.murs.append(Mur(SCREEN_WIDTH/2-150,SCREEN_HEIGHT/2-70,300,15))
+        self.murs.append(Mur(SCREEN_WIDTH/2-150,SCREEN_HEIGHT/2+70,300,15))
+        self.murs.append(Mur(SCREEN_WIDTH/2-150,SCREEN_HEIGHT/2-55,15,130))
+        self.murs.append(Mur(SCREEN_WIDTH/2+135,SCREEN_HEIGHT/2-55,15,130))
+
+        #partie entre la cage à AH et le haut de la map
+        self.murs.append(Mur(288,185,1,100))
+        self.murs.append(Mur(288,235,150,1))
+        self.murs.append(Mur(SCREEN_WIDTH-287,185,1,100))
+        self.murs.append(Mur(SCREEN_WIDTH-437,235,150,1))
+
+        #barres entre la cage à AH et les côtés de la map
+        self.murs.append(Mur(288,400,1,100))
+        self.murs.append(Mur(SCREEN_WIDTH-287,400,1,100))
+
+        #partie intérieure basse de la map
+        self.murs.append(Mur(88,SCREEN_HEIGHT-103,300,15))
+        self.murs.append(Mur(SCREEN_WIDTH-388,SCREEN_HEIGHT-103,300,15))
+        self.murs.append(Mur(288,SCREEN_HEIGHT-153,15,50))
+        self.murs.append(Mur(SCREEN_WIDTH-303,SCREEN_HEIGHT-153,15,50))
+        self.murs.append(Mur(SCREEN_WIDTH/2-5,SCREEN_HEIGHT-178,10,90))
+        self.murs.append(Mur(SCREEN_WIDTH/2-110,SCREEN_HEIGHT-193,220,15))
+        self.murs.append(Mur(88,570,127,15))
+        self.murs.append(Mur(SCREEN_WIDTH-215,570,127,15))
+
     """
     Méthode gérant la fermeture de la connexion côté client
     """
