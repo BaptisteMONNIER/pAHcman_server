@@ -180,12 +180,36 @@ class ClientChannel(Channel):
 
     def create_murs(self):
         self.murs = []
+
+        #Haut de la map
         self.murs.append(Mur(0,0,SCREEN_WIDTH,15))
+
+        #Côté gauche de la map
         self.murs.append(Mur(0,15,15,170))
         self.murs.append(Mur(0,185,200,15))
         self.murs.append(Mur(200,185,15,80))
         self.murs.append(Mur(0,265,215,15))
+        self.murs.append(Mur(0,390,215,15))
+        self.murs.append(Mur(200,405,15,80))
+        self.murs.append(Mur(0,470,215,15))
+        self.murs.append(Mur(0,470,15,SCREEN_HEIGHT-433))
 
+        #Bas de la map
+        self.murs.append(Mur(0,SCREEN_HEIGHT-15,SCREEN_WIDTH,15))
+
+        #Côté droit de la map
+        self.murs.append(Mur(SCREEN_WIDTH-15,15,15,170))
+        self.murs.append(Mur(SCREEN_WIDTH-200,185,200,15))
+        self.murs.append(Mur(SCREEN_WIDTH-215,185,15,80))
+        self.murs.append(Mur(SCREEN_WIDTH-215,265,215,15))
+        self.murs.append(Mur(SCREEN_WIDTH-215,390,215,15))
+        self.murs.append(Mur(SCREEN_WIDTH-215,405,15,80))
+        self.murs.append(Mur(SCREEN_WIDTH-215,470,215,15))
+        self.murs.append(Mur(SCREEN_WIDTH-15,470,15,SCREEN_HEIGHT-433))
+
+
+        #Interieur de la map
+        self.murs.append(Mur(88,88,15,15))
     """
     Méthode gérant la fermeture de la connexion côté client
     """
