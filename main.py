@@ -1,6 +1,9 @@
 #!/usr/bin/python2
 # -*- coding: utf-8 -*-
 
+SCREEN_WIDTH = 1024
+SCREEN_HEIGHT = 768
+
 """
 Serveur du jeu pAHcman
 """
@@ -46,10 +49,10 @@ class Mur(pygame.sprite.Sprite):
     """
     Constructeur de la classe Sprite
     """
-    def __init__(self):
+    def __init__(self,x,y,w,h):
         pygame.sprite.Sprite.__init__(self)
-        self.image = pygame.Surface((128,15),0,None)
-        self.rect = pygame.Rect(100,100,128,15)
+        self.image = pygame.Surface((w,h),0,None)
+        self.rect = pygame.Rect(x,y,w,h)
 
 """
 Classe gérant le sprite Denis
@@ -81,9 +84,16 @@ class Denis(pygame.sprite.Sprite):
     Paramètres :
         - keys : touches enfoncée
     """
-    def update(self,keys):
+    def update(self,keys,murs):
 
-        if self.rect.colliderect(Mur().rect) == 0:
+        mur = self.rect.collidelist(murs)
+
+        if(self.rect.x < 0-self.rect.w):
+            self.rect.x = SCREEN_WIDTH
+        if(self.rect.x > SCREEN_WIDTH):
+            self.rect.x = 0
+
+        if mur == -1:
 
             if keys[K_LEFT]:
                 self.moveLeft()
@@ -100,18 +110,18 @@ class Denis(pygame.sprite.Sprite):
 
             if self.orientation == 'w' :
 
-                self.rect = pygame.Rect(Mur().rect.right,self.rect.y,self.rect.w,self.rect.h)
+                self.rect = pygame.Rect(murs[mur].rect.right,self.rect.y,self.rect.w,self.rect.h)
 
             elif self.orientation == 'e':
-                self.rect = pygame.Rect(Mur().rect.left-self.rect.w,self.rect.y,self.rect.w,self.rect.h)
+                self.rect = pygame.Rect(murs[mur].rect.left-self.rect.w,self.rect.y,self.rect.w,self.rect.h)
 
             elif 'n' in self.orientation:
 
-                self.rect = pygame.Rect(self.rect.x,Mur().rect.bottom,self.rect.w,self.rect.h)
+                self.rect = pygame.Rect(self.rect.x,murs[mur].rect.bottom,self.rect.w,self.rect.h)
 
             elif 's' in self.orientation:
 
-                self.rect = pygame.Rect(self.rect.x,Mur().rect.top-self.rect.h,self.rect.w,self.rect.h)
+                self.rect = pygame.Rect(self.rect.x,murs[mur].rect.top-self.rect.h,self.rect.w,self.rect.h)
 
     """
     Methode gérant le déplacement vers la gauche
@@ -168,6 +178,14 @@ class ClientChannel(Channel):
     def create_denis(self):
         self.denis = Denis()
 
+    def create_murs(self):
+        self.murs = []
+        self.murs.append(Mur(0,0,SCREEN_WIDTH,15))
+        self.murs.append(Mur(0,15,15,170))
+        self.murs.append(Mur(0,185,200,15))
+        self.murs.append(Mur(200,185,15,80))
+        self.murs.append(Mur(0,265,215,15))
+
     """
     Méthode gérant la fermeture de la connexion côté client
     """
@@ -180,7 +198,7 @@ class ClientChannel(Channel):
         - data : message
     """
     def Network_keys(self, data):
-        self.denis.update(data['keystrokes'])
+        self.denis.update(data['keystrokes'],self.murs)
 
 """
 Classe MyServer, réprésantant le serveur
@@ -207,6 +225,7 @@ class MyServer(Server):
     def Connected(self,channel,addr):
         self.clients.append(channel)
         channel.create_denis()
+        channel.create_murs()
         print('client connecté')
 
         if len(self.clients) == 1:
@@ -227,7 +246,7 @@ class MyServer(Server):
     """
     def send_denis(self):
         for client in self.clients:
-            if not client.denis.rect.colliderect(Mur().rect):
+            if client.denis.rect.collidelist(client.murs) == -1:
                 client.Send({'action':'denis','denis':[client.denis.rect.centerx,client.denis.rect.centery,client.denis.orientation]})
 
     """
@@ -248,7 +267,6 @@ Programme principal du serveur
 """
 
 if __name__ == '__main__':
-    SCREEN_WIDTH = 800
-    SCREEN_HEIGHT = 600
+
     myServer = MyServer(localaddr = (sys.argv[1],int(sys.argv[2])))
     myServer.launch_game()
