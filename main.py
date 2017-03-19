@@ -66,15 +66,23 @@ class Denis(pygame.sprite.Sprite):
     Paramètres :
         - keys : touches enfoncée
     """
-    def update(self,keys):
+    def update(self,keys,mur_collidex,mur_collidey):
+        top_collide  = False
+
+        if 'n' in self.orientation:
+            if self.rect.y <= mur_collidey:
+                self.rect.y = mur_collidey
+                top_collide  = True
+
         if keys[K_LEFT]:
             self.moveLeft()
         elif keys[K_RIGHT]:
             self.moveRight()
-        elif keys[K_UP]:
+        elif keys[K_UP] and not top_collide:
             self.moveUp()
         elif keys[K_DOWN]:
             self.moveDown()
+
 
     """
     Methode gérant le déplacement vers la gauche
@@ -143,7 +151,7 @@ class ClientChannel(Channel):
         - data : message
     """
     def Network_keys(self, data):
-        self.denis.update(data['keystrokes'])
+        self.denis.update(data['keystrokes'],data['mur_collidex'],data['mur_collidey'])
 
 """
 Classe MyServer, réprésantant le serveur
