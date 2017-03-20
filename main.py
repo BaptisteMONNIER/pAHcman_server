@@ -54,6 +54,62 @@ class Mur(pygame.sprite.Sprite):
         self.image = pygame.Surface((w,h),0,None)
         self.rect = pygame.Rect(x,y,w,h)
 
+
+class AhBleu(pygame.sprite.Sprite):
+    def __init__(self):
+        pygame.sprite.Sprite.__init__(self)
+
+        self.image,self.rect=load_png("pics/ah.png")
+        self.rect.center = [SCREEN_WIDTH/2,SCREEN_HEIGHT/2]
+        self.direction = 'n'
+        self.stop = False
+
+    def update(self, keys, murs, denis):
+        mur = self.rect.collidelist(murs)
+
+        if(self.rect.colliderect(denis.rect)):
+            self.stop = True
+        else:
+            self.stop = False
+
+        if(self.rect.x < 0-self.rect.w):
+            self.rect.x = SCREEN_WIDTH
+        if(self.rect.x > SCREEN_WIDTH):
+            self.rect.x = 0
+
+        if mur == -1 or mur == 25:
+
+            if keys[K_LEFT]:
+                self.direction = 'w'
+                self.rect = self.rect.move([-5,0])
+            elif keys[K_RIGHT]:
+                self.direction = 'e'
+                self.rect = self.rect.move([5,0])
+            elif keys[K_UP]:
+                self.direction = 'n'
+                self.rect = self.rect.move([0,-5])
+            elif keys[K_DOWN]:
+                self.direction = 's'
+                self.rect = self.rect.move([0,5])
+
+        else:
+
+
+            if self.direction == 'w' :
+
+                self.rect = pygame.Rect(murs[mur].rect.right,self.rect.y,self.rect.w,self.rect.h)
+
+            elif self.direction == 'e':
+                self.rect = pygame.Rect(murs[mur].rect.left-self.rect.w,self.rect.y,self.rect.w,self.rect.h)
+
+            elif self.direction == 'n':
+
+                self.rect = pygame.Rect(self.rect.x,murs[mur].rect.bottom,self.rect.w,self.rect.h)
+
+            elif self.direction == 's':
+
+                self.rect = pygame.Rect(self.rect.x,murs[mur].rect.top-self.rect.h,self.rect.w,self.rect.h)
+
 """
 Classe gérant le sprite Denis
 Hérite de :
@@ -77,6 +133,7 @@ class Denis(pygame.sprite.Sprite):
 
         self.rect.center = [SCREEN_WIDTH/2,SCREEN_HEIGHT/2+150]
         self.orientation = 'w'
+        self.stop = False
 
 
     """
@@ -84,9 +141,14 @@ class Denis(pygame.sprite.Sprite):
     Paramètres :
         - keys : touches enfoncée
     """
-    def update(self,keys,murs):
+    def update(self,keys,murs,ah):
 
         mur = self.rect.collidelist(murs)
+
+        if(self.rect.colliderect(ah.rect)):
+            self.stop = True
+        else:
+            self.stop = False
 
         if(self.rect.x < 0-self.rect.w):
             self.rect.x = SCREEN_WIDTH
@@ -128,14 +190,14 @@ class Denis(pygame.sprite.Sprite):
     """
     def moveLeft(self):
         self.orientation = 'w'
-        self.rect = self.rect.move([-10,0])
+        self.rect = self.rect.move([-5,0])
 
     """
     Methode gérant le déplacement vers la droite
     """
     def moveRight(self):
         self.orientation = 'e'
-        self.rect = self.rect.move([10,0])
+        self.rect = self.rect.move([5,0])
 
     """
     Methode gérant le déplacement vers le haut
@@ -145,7 +207,7 @@ class Denis(pygame.sprite.Sprite):
             self.orientation = 'ne'
         elif 'w' in self.orientation:
             self.orientation = 'nw'
-        self.rect = self.rect.move([0,-10])
+        self.rect = self.rect.move([0,-5])
 
     """
     Methode gérant le déplacement vers le haut
@@ -156,7 +218,7 @@ class Denis(pygame.sprite.Sprite):
         elif 'w' in self.orientation:
             self.orientation = 'sw'
 
-        self.rect = self.rect.move([0,10])
+        self.rect = self.rect.move([0,5])
 
 """
 Classe ClientChannel, représentant un client
@@ -177,6 +239,9 @@ class ClientChannel(Channel):
     """
     def create_denis(self):
         self.denis = Denis()
+
+    def create_AhBleu(self):
+        self.ahBleu = AhBleu()
 
     def create_murs(self):
         self.murs = []
@@ -216,7 +281,9 @@ class ClientChannel(Channel):
         self.murs.append(Mur(SCREEN_WIDTH-430,88,130,15))
 
         #cage à AH
-        self.murs.append(Mur(SCREEN_WIDTH/2-150,SCREEN_HEIGHT/2-70,300,15))
+        self.murs.append(Mur(SCREEN_WIDTH/2-150,SCREEN_HEIGHT/2-70,100,15))
+        self.murs.append(Mur(SCREEN_WIDTH/2+50,SCREEN_HEIGHT/2-70,100,15))
+        self.murs.append(Mur(SCREEN_WIDTH/2-50,SCREEN_HEIGHT/2-70,100,10))
         self.murs.append(Mur(SCREEN_WIDTH/2-150,SCREEN_HEIGHT/2+70,300,15))
         self.murs.append(Mur(SCREEN_WIDTH/2-150,SCREEN_HEIGHT/2-55,15,130))
         self.murs.append(Mur(SCREEN_WIDTH/2+135,SCREEN_HEIGHT/2-55,15,130))
@@ -253,7 +320,10 @@ class ClientChannel(Channel):
         - data : message
     """
     def Network_keys(self, data):
-        self.denis.update(data['keystrokes'],self.murs)
+        if(data['perso'] == 'denis'):
+            self.denis.update(data['keystrokes'],self.murs,self.ahBleu)
+        else:
+            self.ahBleu.update(data['keystrokes'],self.murs,self.denis)
 
 """
 Classe MyServer, réprésantant le serveur
@@ -280,12 +350,13 @@ class MyServer(Server):
     def Connected(self,channel,addr):
         self.clients.append(channel)
         channel.create_denis()
+        channel.create_AhBleu()
         channel.create_murs()
         print('client connecté')
 
-        if len(self.clients) == 1:
-            for client in self.clients:
-                client.Send({'action':'start'})
+        if len(self.clients) == 2:
+            self.clients[0].Send({'action':'start','perso':'denis'})
+            self.clients[1].Send({'action':'start','perso':'ah'})
             self.run = True
 
     """
@@ -300,10 +371,19 @@ class MyServer(Server):
     Methode renvoyant le résultat de l'évenement au client
     """
     def send_denis(self):
-        for client in self.clients:
-            if client.denis.rect.collidelist(client.murs) == -1:
-                client.Send({'action':'denis','denis':[client.denis.rect.centerx,client.denis.rect.centery,client.denis.orientation]})
+        if(len(self.clients) == 2):
 
+            denis = self.clients[0].denis
+            ah = self.clients[1].ahBleu
+
+            for client in self.clients:
+                if denis.rect.collidelist(client.murs) == -1:
+                    client.Send({'action':'denis','denis':[denis.rect.centerx,denis.rect.centery,denis.orientation]})
+                if ah.rect.collidelist(client.murs) == -1 or ah.rect.collidelist(client.murs) == 25:
+                    client.Send({'action':'AhBleu','AhBleu':[ah.rect.centerx,ah.rect.centery]})
+
+                if denis.stop or ah.stop:
+                    client.Send({'action':'stop'})
     """
     Methode du jeu
     """
