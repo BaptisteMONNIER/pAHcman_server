@@ -10,6 +10,7 @@ Serveur du jeu pAHcman
 
 import sys, pygame
 import os
+import time
 from pygame.locals import *
 import random
 from PodSixNet.Channel import Channel
@@ -40,6 +41,8 @@ def load_png(path):
 
 
 
+
+
 """
 Classe gérant le sprite Mur
 Hérite de :
@@ -54,6 +57,16 @@ class Mur(pygame.sprite.Sprite):
         self.image = pygame.Surface((w,h),0,None)
         self.rect = pygame.Rect(x,y,w,h)
 
+class Cabane(pygame.sprite.Sprite):
+
+    def __init__(self,x,y):
+        pygame.sprite.Sprite.__init__(self)
+        self.image,self.rect=load_png("pics/cabane.png")
+        self.rect = pygame.Rect(x,y,self.rect.w,self.rect.w)
+
+    def update(self):
+        self.rect = pygame.Rect(-100,-100,self.rect.w,self.rect.w)
+
 
 class AhBleu(pygame.sprite.Sprite):
     def __init__(self):
@@ -62,53 +75,51 @@ class AhBleu(pygame.sprite.Sprite):
         self.image,self.rect=load_png("pics/ah.png")
         self.rect.center = [SCREEN_WIDTH/2,SCREEN_HEIGHT/2]
         self.direction = 'n'
-        self.stop = False
 
-    def update(self, keys, murs, denis):
-        mur = self.rect.collidelist(murs)
-
-        if(self.rect.colliderect(denis.rect)):
-            self.stop = True
-        else:
-            self.stop = False
-
-        if(self.rect.x < 0-self.rect.w):
-            self.rect.x = SCREEN_WIDTH
-        if(self.rect.x > SCREEN_WIDTH):
-            self.rect.x = 0
-
-        if mur == -1 or mur == 25:
-
-            if keys[K_LEFT]:
-                self.direction = 'w'
-                self.rect = self.rect.move([-5,0])
-            elif keys[K_RIGHT]:
-                self.direction = 'e'
-                self.rect = self.rect.move([5,0])
-            elif keys[K_UP]:
-                self.direction = 'n'
-                self.rect = self.rect.move([0,-5])
-            elif keys[K_DOWN]:
-                self.direction = 's'
-                self.rect = self.rect.move([0,5])
+    def update(self, keys, murs, repop):
+        if repop: #si le joueur vient de perdre un point de vie, il doit repop à sa position initiale
+            self.rect.center = [SCREEN_WIDTH/2,SCREEN_HEIGHT/2]
 
         else:
+            mur = self.rect.collidelist(murs)
+
+            if(self.rect.x < 0-self.rect.w):#si le joueur passe dans le tunnel à gauche de l'écran, il doit ressortir à droit et inversement
+                self.rect.x = SCREEN_WIDTH
+            if(self.rect.x > SCREEN_WIDTH):
+                self.rect.x = 0
+
+            if mur == -1 or mur == 25:#si aucune collision entre un mur et un Ah est detectée (à l'exception du mur plus fin de la cage à Ah, que seul un ah peut traverser)
+
+                if keys[K_LEFT]:#déplacement du joueur en fonction de la touche enfoncée
+                    self.direction = 'w'
+                    self.rect = self.rect.move([-5,0])
+                elif keys[K_RIGHT]:
+                    self.direction = 'e'
+                    self.rect = self.rect.move([5,0])
+                elif keys[K_UP]:
+                    self.direction = 'n'
+                    self.rect = self.rect.move([0,-5])
+                elif keys[K_DOWN]:
+                    self.direction = 's'
+                    self.rect = self.rect.move([0,5])
+
+            else:#si une collision est detectée, on résoud la collision
 
 
-            if self.direction == 'w' :
+                if self.direction == 'w' :
 
-                self.rect = pygame.Rect(murs[mur].rect.right,self.rect.y,self.rect.w,self.rect.h)
+                    self.rect = pygame.Rect(murs[mur].rect.right,self.rect.y,self.rect.w,self.rect.h)
 
-            elif self.direction == 'e':
-                self.rect = pygame.Rect(murs[mur].rect.left-self.rect.w,self.rect.y,self.rect.w,self.rect.h)
+                elif self.direction == 'e':
+                    self.rect = pygame.Rect(murs[mur].rect.left-self.rect.w,self.rect.y,self.rect.w,self.rect.h)
 
-            elif self.direction == 'n':
+                elif self.direction == 'n':
 
-                self.rect = pygame.Rect(self.rect.x,murs[mur].rect.bottom,self.rect.w,self.rect.h)
+                    self.rect = pygame.Rect(self.rect.x,murs[mur].rect.bottom,self.rect.w,self.rect.h)
 
-            elif self.direction == 's':
+                elif self.direction == 's':
 
-                self.rect = pygame.Rect(self.rect.x,murs[mur].rect.top-self.rect.h,self.rect.w,self.rect.h)
+                    self.rect = pygame.Rect(self.rect.x,murs[mur].rect.top-self.rect.h,self.rect.w,self.rect.h)
 
 """
 Classe gérant le sprite Denis
@@ -133,7 +144,6 @@ class Denis(pygame.sprite.Sprite):
 
         self.rect.center = [SCREEN_WIDTH/2,SCREEN_HEIGHT/2+150]
         self.orientation = 'w'
-        self.stop = False
 
 
     """
@@ -141,49 +151,47 @@ class Denis(pygame.sprite.Sprite):
     Paramètres :
         - keys : touches enfoncée
     """
-    def update(self,keys,murs,ah):
+    def update(self,keys,murs,repop):
 
-        mur = self.rect.collidelist(murs)
-
-        if(self.rect.colliderect(ah.rect)):
-            self.stop = True
+        if repop:#si le joueur vient de perde un point de vie, il doit repop
+            self.rect.center = [SCREEN_WIDTH/2,SCREEN_HEIGHT/2+150]
         else:
-            self.stop = False
+            mur = self.rect.collidelist(murs)
 
-        if(self.rect.x < 0-self.rect.w):
-            self.rect.x = SCREEN_WIDTH
-        if(self.rect.x > SCREEN_WIDTH):
-            self.rect.x = 0
+            if(self.rect.x < 0-self.rect.w):#si le joueur vient de passer sous le tunnel situé à gauche de l'écran, il doit ressortir à droite et inversement
+                self.rect.x = SCREEN_WIDTH
+            if(self.rect.x > SCREEN_WIDTH):
+                self.rect.x = 0
 
-        if mur == -1:
+            if mur == -1:#si aucune collision n'est detécté entre denis et un mur
 
-            if keys[K_LEFT]:
-                self.moveLeft()
-            elif keys[K_RIGHT]:
-                self.moveRight()
-            elif keys[K_UP]:
-                self.moveUp()
-            elif keys[K_DOWN]:
-                self.moveDown()
+                if keys[K_LEFT]:
+                    self.moveLeft()
+                elif keys[K_RIGHT]:
+                    self.moveRight()
+                elif keys[K_UP]:
+                    self.moveUp()
+                elif keys[K_DOWN]:
+                    self.moveDown()
 
-        else:
+            else:#si une collision est detectée, on la résoud
 
 
 
-            if self.orientation == 'w' :
+                if self.orientation == 'w' :
 
-                self.rect = pygame.Rect(murs[mur].rect.right,self.rect.y,self.rect.w,self.rect.h)
+                    self.rect = pygame.Rect(murs[mur].rect.right,self.rect.y,self.rect.w,self.rect.h)
 
-            elif self.orientation == 'e':
-                self.rect = pygame.Rect(murs[mur].rect.left-self.rect.w,self.rect.y,self.rect.w,self.rect.h)
+                elif self.orientation == 'e':
+                    self.rect = pygame.Rect(murs[mur].rect.left-self.rect.w,self.rect.y,self.rect.w,self.rect.h)
 
-            elif 'n' in self.orientation:
+                elif 'n' in self.orientation:
 
-                self.rect = pygame.Rect(self.rect.x,murs[mur].rect.bottom,self.rect.w,self.rect.h)
+                    self.rect = pygame.Rect(self.rect.x,murs[mur].rect.bottom,self.rect.w,self.rect.h)
 
-            elif 's' in self.orientation:
+                elif 's' in self.orientation:
 
-                self.rect = pygame.Rect(self.rect.x,murs[mur].rect.top-self.rect.h,self.rect.w,self.rect.h)
+                    self.rect = pygame.Rect(self.rect.x,murs[mur].rect.top-self.rect.h,self.rect.w,self.rect.h)
 
     """
     Methode gérant le déplacement vers la gauche
@@ -242,6 +250,20 @@ class ClientChannel(Channel):
 
     def create_AhBleu(self):
         self.ahBleu = AhBleu()
+
+    def create_cabane(self):
+        self.cabanes = []
+        #haut de la map
+        self.cabanes.append(Cabane(15,15))
+        self.cabanes.append(Cabane(SCREEN_WIDTH/2-70,15))
+        self.cabanes.append(Cabane(SCREEN_WIDTH/2+70,15))
+        self.cabanes.append(Cabane(SCREEN_WIDTH-85,15))
+
+        #bas de la map
+        self.cabanes.append(Cabane(15,SCREEN_HEIGHT-85))
+        self.cabanes.append(Cabane(SCREEN_WIDTH/2-70,SCREEN_HEIGHT-85))
+        self.cabanes.append(Cabane(SCREEN_WIDTH/2+70,SCREEN_HEIGHT-85))
+        self.cabanes.append(Cabane(SCREEN_WIDTH-85,SCREEN_HEIGHT-85))
 
     def create_murs(self):
         self.murs = []
@@ -320,10 +342,12 @@ class ClientChannel(Channel):
         - data : message
     """
     def Network_keys(self, data):
+
         if(data['perso'] == 'denis'):
-            self.denis.update(data['keystrokes'],self.murs,self.ahBleu)
+            #envoie les touche enfoncées, la liste des murs de la map, et False, pour indiquer que le joueur n'a pas perdu de point de vie
+            self.denis.update(data['keystrokes'],self.murs,False)
         else:
-            self.ahBleu.update(data['keystrokes'],self.murs,self.denis)
+            self.ahBleu.update(data['keystrokes'],self.murs,False)
 
 """
 Classe MyServer, réprésantant le serveur
@@ -344,6 +368,13 @@ class MyServer(Server):
         self.screen = pygame.display.set_mode((128,128))
         print('Serveur lauched')
 
+        self.cabane = -1 #cabane que denis vient de manger (-1 si aucune cabane n'a été mangée, ou si la dernière à cessé de faire effet)
+        self.declCompteur = True #Booleen indiquant si la cabane fait effet (en l'occurrence, l'invincibilité)
+        self.time = time.time() #Temps actuel
+        self.pvdenis = 10 #Points de vie de denis de base
+        self.pvah = 10 #Points de vie de Ah de base
+        self.collision = True #Si une collision entre denis à Ah à été detectée et n'est pas résolue
+
     """
     Methode gérant la connexion d'un client au Serveur
     """
@@ -352,6 +383,7 @@ class MyServer(Server):
         channel.create_denis()
         channel.create_AhBleu()
         channel.create_murs()
+        channel.create_cabane()
         print('client connecté')
 
         if len(self.clients) == 2:
@@ -367,23 +399,73 @@ class MyServer(Server):
         print('client déconnecté')
         self.clients.remove(channel)
 
+        if len(self.clients) == 0:
+            exit(0)
+
     """
     Methode renvoyant le résultat de l'évenement au client
     """
     def send_denis(self):
         if(len(self.clients) == 2):
 
-            denis = self.clients[0].denis
-            ah = self.clients[1].ahBleu
+            if(self.pvdenis > 0 and self.pvah > 0): #Si les joueurs on au moins un point de vie
+                ancienX = 1
+                ancienY = 1
 
-            for client in self.clients:
-                if denis.rect.collidelist(client.murs) == -1:
-                    client.Send({'action':'denis','denis':[denis.rect.centerx,denis.rect.centery,denis.orientation]})
-                if ah.rect.collidelist(client.murs) == -1 or ah.rect.collidelist(client.murs) == 25:
-                    client.Send({'action':'AhBleu','AhBleu':[ah.rect.centerx,ah.rect.centery]})
+                denis = self.clients[0].denis #Récupération du sprite denis depuis le client denis (afin d'avoir la position la plus récente)
+                ah = self.clients[1].ahBleu #Récupération du sprite Ah depuis le client AH (afin d'avoir la position la plus récente)
 
-                if denis.stop or ah.stop:
-                    client.Send({'action':'stop'})
+                self.collision = True #si self.collision est à True, cela veut dire qu'aucune collision n'est detectée
+
+                for client in self.clients:
+                    if denis.rect.collidelist(client.murs) == -1: #On vérifie qu'il n'y a pas de collision non résolue entre denis et un mur, dans le cas contraire, rien n'est envoyé au serveur, pour ne pas faire afficher un sprite encastré dans un mur
+                        if self.cabane == -1:#Si aucune cabane n'a été mangée recemment, on indique au client que denis est "normal"
+                            client.Send({'action':'denis','denis':[denis.rect.centerx,denis.rect.centery,denis.orientation,-1]})
+                        else:#Si une cabane à été mangée récemment, on indique au client que denis est invincible, ainsi que la position de la cabane pour que le client la mettre hors de l'écran
+                            client.Send({'action':'denis','denis':[denis.rect.centerx,denis.rect.centery,denis.orientation,int((self.time+30)-(time.time()))]})
+                            if (ancienX > 0 or ancienY > 0):
+                                ancienX = client.cabanes[self.cabane].rect.centerx
+                                ancienY = client.cabanes[self.cabane].rect.centery
+                            client.cabanes[self.cabane].update()
+                            client.Send({'action':'Cabane','Cabane':[ancienX,ancienY,client.cabanes[self.cabane].rect.centerx,client.cabanes[self.cabane].rect.centery]})
+
+                    if ah.rect.collidelist(client.murs) == -1 or ah.rect.collidelist(client.murs) == 25:#On vérifie qu'il n'y ait pas de collision entre le Ah et un mur
+                        client.Send({'action':'AhBleu','AhBleu':[ah.rect.centerx,ah.rect.centery]})
+
+
+                    if denis.rect.collidelist(client.cabanes) != -1: #On regarde s'il y a une collision entre denis et une cabane
+                        self.cabane = denis.rect.collidelist(client.cabanes) #on récupère le numéro de la cabane
+                        self.time = time.time() #On prends le temps ou la cabane à été mangée
+                        self.declCompteur = False #On indique que le temps à été pris
+
+                    if denis.rect.colliderect(ah.rect):#On regarde s'il y a une collision entre denis et un ah
+                        if self.cabane == -1:#Si aucune cabane n'a été mangée récemment, #le ah perd un point de vie
+                            client.denis.update(None,None,True)#On dit au ah de repop (d'ou la présence du True)
+                            if self.collision: #Si la collision vient juste d'être relevée
+                                self.pvdenis -=1# On enlève un point de vie
+                            self.clients[0].Send({'action':'ddenis','pvdenis':self.pvdenis}) #On envoie aux client les nouveaux points de vie
+                            self.clients[1].Send({'action':'ddenis','pvdenis':self.pvdenis})
+                        else:
+                            client.ahBleu.update(None,None,True)
+                            if self.collision:
+                                self.pvah -=1
+                            self.clients[0].Send({'action':'dah','pvah':self.pvah})
+                            self.clients[1].Send({'action':'dah','pvah':self.pvah})
+
+                        self.collision = False#On indique que la collision à été relevée, (afin qu'il n'enlève pas un deuxième point de vie inutilement)
+
+
+
+                    if time.time() > self.time + 30: #Si plus de 30 secondes se sont écoulées depuis que denis à mangé une cabane
+                        self.declCompteur = True
+                        self.cabane = -1
+            else:
+                if self.pvdenis == 0: #si denis n'a plus de point de vie
+                    self.clients[0].Send({'action':'fin','gagnant':'ah'}) #on indique aux clients que ah à gagné
+                    self.clients[1].Send({'action':'fin','gagnant':'ah'})
+                if self.pvah == 0: #si ah n'a plus de point de vie
+                    self.clients[0].Send({'action':'fin','gagnant':'denis'})#on indique aux clients que denis à gagné
+                    self.clients[1].Send({'action':'fin','gagnant':'denis'})
     """
     Methode du jeu
     """
